@@ -1,31 +1,32 @@
 import "./App.css";
 import { useEffect, useState } from "react";
 
+//redux
+import { useSelector, useDispatch } from "react-redux";
+import { fetchWeatherApi, test } from "./features/weatherApi/weatherApiSlice";
+
 //MIU
 import Container from "@mui/material/Container";
 import Typography from "@mui/material/Typography";
 import Box from "@mui/material/Box";
 import Button from "@mui/material/Button";
 import CloudIcon from "@mui/icons-material/Cloud";
+import CircularProgress from "@mui/material/CircularProgress";
 
 //external [api, locales, moment]
-import axios from "axios";
 import { useTranslation } from "react-i18next";
 import moment from "moment";
 import "moment/min/locales";
 moment.locale("ar");
 
-let cancelAxios = null;
 function App() {
+  const temp = useSelector((state) => state.weatherApi.weatherData);
+  const isLoading = useSelector((state) => state.weatherApi.isLoading);
+  const dispatch = useDispatch();
+
   const { t, i18n } = useTranslation();
   const [dateAndTime, setDateAndTime] = useState("");
-  const [temp, setTemp] = useState({
-    number: null,
-    description: "",
-    min: null,
-    max: null,
-    icon: null,
-  });
+
   const [locale, setLocale] = useState("en");
 
   //* ** handlers ** */
@@ -45,57 +46,18 @@ function App() {
 
   //locales
   useEffect(() => {
+    dispatch(test());
+    console.log("//////////////////");
+    console.log(temp);
+    console.log(isLoading);
+    dispatch(fetchWeatherApi());
+
     i18n.changeLanguage(locale);
   }, []);
 
   useEffect(() => {
     //date and time method
     setDateAndTime(moment().format("MMMM Do YYYY"));
-
-    // api
-    axios
-      .get(
-        "https://api.openweathermap.org/data/2.5/weather?lat=30.0444&lon=31.2357&appid=3a26c7ed075ea96552764086756f4f9d",
-        {
-          cancelToken: new axios.CancelToken((c) => {
-            cancelAxios = c;
-          }),
-        }
-      )
-      .then((response) => {
-        // handle success
-        //temp
-        const responseTemp = Math.round(response.data.main.temp - 272.15);
-
-        //min temp
-        const min = Math.round(response.data.main.temp_min - 272.15);
-
-        //max temp
-        const max = Math.round(response.data.main.temp_max - 272.15);
-
-        //Description temp
-        const description = response.data.weather[0].description;
-
-        //icon
-        const responseIcon = response.data.weather[0].icon;
-
-        setTemp({
-          number: responseTemp,
-          description: description,
-          min: min,
-          max: max,
-          icon: `https://openweathermap.org/img/wn/${responseIcon}@2x.png`,
-        });
-      })
-      .catch((error) => {
-        // handle error
-        console.log(error);
-      });
-
-    //cleanup useEffect
-    return () => {
-      cancelAxios();
-    };
   }, []);
   return (
     <>
@@ -137,7 +99,11 @@ function App() {
           {/* tem */}
           <div style={{ display: "flex", flexDirection: "column" }}>
             <div style={{ display: "flex", justifyContent: "space-around" }}>
-              <Typography variant="h1">{temp.number}</Typography>
+              {isLoading ? (
+                <CircularProgress style={{ color: "white" }} />
+              ) : (
+                <Typography variant="h1">{temp.number}</Typography>
+              )}
 
               <div>
                 <img src={temp.icon} />
